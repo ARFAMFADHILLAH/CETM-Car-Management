@@ -49,25 +49,12 @@ Registrasi  ──►  Verifikasi Email  ──►  Login (+ 2FA / Passkey opsio
 ```bash
 composer install           # install dependency backend
 npm install                # install dependency frontend
-cp .env.example .env       # lalu sesuaikan koneksi MySQL di bawah
+cp .env.example .env       # lalu atur koneksi database (lihat catatan di bawah)
 php artisan key:generate
 php artisan migrate --seed # migrasi + akun demo
 npm run dev                # terminal kedua: Vite dev server
 php artisan serve          # terminal ketiga → http://localhost:8000
 ```
-
-Konfigurasi MySQL di file `.env`:
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=carmanage_cetm
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-Buat database `carmanage_cetm` terlebih dahulu di MySQL/MariaDB, kemudian jalankan migrasi.
 
 ### Akun Demo
 
@@ -142,6 +129,7 @@ composer run ci:check  # lint + format + types + test sekaligus
 ## Catatan
 
 - `.env.example` bawaan memakai **SQLite** sebagai opsi cepat tanpa server database; untuk pengembangan maupun produksi disarankan **MySQL/MariaDB** seperti instruksi di atas.
+- **Keamanan `.env`**: file `.env` menyimpan kredensial database dan `APP_KEY`, sudah diabaikan git sejak awal (terdaftar di `.gitignore`), dan **tidak boleh pernah di-commit atau di-push** ke GitHub/repository mana pun. Untuk berbagi konfigurasi, gunakan hanya `.env.example` yang berisi placeholder tanpa nilai asli.
 - Rute autentikasi (login, register, reset kata sandi, 2FA, passkey, verifikasi email) didaftarkan otomatis oleh **Laravel Fortify** — tidak didefinisikan manual di `routes/web.php`.
 - Folder `resources/js/actions`, `resources/js/routes`, dan `resources/js/wayfinder` digenerate otomatis oleh plugin **Wayfinder** saat `npm run dev` / `npm run build` — jangan diedit manual.
 - Middleware `auth` + `verified` melindungi dashboard: warga belum verifikasi email akan dialihkan ke halaman verifikasi.
