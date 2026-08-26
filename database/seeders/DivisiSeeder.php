@@ -13,12 +13,17 @@ class DivisiSeeder extends Seeder
     public function run(): void
     {
         $divisi = [
-            'Operasional',
-            'Keuangan',
-            'Sumber Daya Manusia',
-            'Pemasaran',
-            'Teknik',
-            'Logistik',
+            'Managing director',
+            'Sales Engineer',
+            'Sales Excecutive',
+            'Supervisor Sales Engineer',
+            'Marketing Communication',
+            'Technical Engineer',
+            'Logistic',
+            'Finance & Logistic Manager',
+            'Finance & Accounting',
+            'Accounting Staff',
+            'Delivery Man'
         ];
 
         foreach ($divisi as $namaDivisi) {
