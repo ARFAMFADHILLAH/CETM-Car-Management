@@ -3,7 +3,6 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { LayoutGrid, Menu, Search } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import NotificationBell from '@/components/NotificationBell.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -77,8 +76,10 @@ const mainNavItems: NavItem[] = [
                                 >Navigation menu</SheetTitle
                             >
                             <SheetHeader class="flex justify-start text-left">
-                                <AppLogoIcon
-                                    class="size-6 fill-current text-black dark:text-white"
+                                <img
+                                    src="/logocemandiri.png"
+                                    alt="CEM Logo"
+                                    class="size-6 object-contain"
                                 />
                             </SheetHeader>
                             <div

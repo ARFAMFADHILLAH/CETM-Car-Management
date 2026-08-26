@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { Head, usePage } from '@inertiajs/vue3';
-import { Car as CarIcon, Pencil, Plus, Trash2 } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
-import { toast } from 'vue-sonner';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Car as CarIcon, Image, Pencil, Plus, Trash2, X } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
@@ -23,6 +22,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import InputError from '@/components/InputError.vue';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -31,8 +31,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { carStatusLabel, mockCars } from '@/mock/cars';
-import type { CarStatus, MockCar } from '@/mock/cars';
+import type { Car as CarType, CarStatus } from '@/types/car';
+import { store, update, destroy } from '@/routes/mobil';
+
+const carStatusLabel: Record<CarStatus, string> = {
+    tersedia: 'Tersedia',
+    tidak_tersedia: 'Tidak Tersedia',
+    di_servis: 'Di Servis',
+};
 
 defineOptions({
     layout: {
@@ -43,60 +49,98 @@ defineOptions({
 const page = usePage();
 const isAdmin = computed(() => page.props.auth.user?.role?.role === 'admin');
 
-const cars = ref<MockCar[]>([...mockCars]);
+const props = defineProps<{
+    cars: CarType[];
+}>();
 
 const dialogTerbuka = ref(false);
-const sedangEdit = ref<MockCar | null>(null);
+const sedangEdit = ref<CarType | null>(null);
+const previewUrl = ref<string | null>(null);
 
-const form = reactive({
+const form = useForm({
     nama: '',
     nomor_plat: '',
     status: 'tersedia' as CarStatus,
+    foto: null as File | null,
 });
+
+watch(
+    () => page.props.flash?.success,
+    (msg) => {
+        if (msg) {
+            import('vue-sonner').then(({ toast }) => toast.success(msg as string));
+        }
+    },
+);
 
 function bukaTambah(): void {
     sedangEdit.value = null;
-    form.nama = '';
-    form.nomor_plat = '';
-    form.status = 'tersedia';
+    form.reset();
+    form.clearErrors();
+    previewUrl.value = null;
     dialogTerbuka.value = true;
 }
 
-function bukaEdit(car: MockCar): void {
+function bukaEdit(car: CarType): void {
     sedangEdit.value = car;
     form.nama = car.nama;
     form.nomor_plat = car.nomor_plat;
     form.status = car.status;
+    form.foto = null;
+    previewUrl.value = car.foto ? `/storage/${car.foto}` : null;
+    form.clearErrors();
     dialogTerbuka.value = true;
+}
+
+function handleFoto(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    form.foto = file;
+
+    if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl.value);
+    }
+
+    previewUrl.value = file ? URL.createObjectURL(file) : null;
+}
+
+function hapusPreview(): void {
+    if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl.value);
+    }
+
+    previewUrl.value = null;
+    form.foto = null;
 }
 
 function simpan(): void {
     if (sedangEdit.value) {
-        const target = cars.value.find((c) => c.id === sedangEdit.value?.id);
-
-        if (target) {
-            target.nama = form.nama;
-            target.nomor_plat = form.nomor_plat;
-            target.status = form.status;
-        }
-
-        toast.success('Data mobil berhasil diperbarui.');
-    } else {
-        cars.value.push({
-            id: Math.max(0, ...cars.value.map((c) => c.id)) + 1,
-            nama: form.nama,
-            nomor_plat: form.nomor_plat,
-            status: form.status,
+        form.put(update.url(sedangEdit.value.id), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                dialogTerbuka.value = false;
+            },
         });
-        toast.success('Mobil baru berhasil ditambahkan.');
+    } else {
+        form.post(store.url(), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                dialogTerbuka.value = false;
+            },
+        });
     }
-
-    dialogTerbuka.value = false;
 }
 
-function hapus(car: MockCar): void {
-    cars.value = cars.value.filter((c) => c.id !== car.id);
-    toast.info(`Mobil ${car.nama} dihapus.`);
+function hapus(car: CarType): void {
+    if (!confirm(`Hapus mobil "${car.nama}"?`)) {
+        return;
+    }
+
+    router.delete(destroy.url(car.id), {
+        preserveScroll: true,
+    });
 }
 </script>
 
@@ -126,12 +170,20 @@ function hapus(car: MockCar): void {
                 <div
                     class="relative aspect-video overflow-hidden border-b border-sidebar-border/70"
                 >
-                    <PlaceholderPattern />
-                    <span
-                        class="absolute top-3 left-3 flex size-10 items-center justify-center rounded-lg bg-background/90 shadow-sm"
-                    >
-                        <CarIcon class="size-5 text-primary" />
-                    </span>
+                    <img
+                        v-if="car.foto"
+                        :src="`/storage/${car.foto}`"
+                        :alt="car.nama"
+                        class="size-full object-cover"
+                    />
+                    <template v-else>
+                        <PlaceholderPattern />
+                        <span
+                            class="absolute top-3 left-3 flex size-10 items-center justify-center rounded-lg bg-background/90 shadow-sm"
+                        >
+                            <CarIcon class="size-5 text-primary" />
+                        </span>
+                    </template>
                     <div class="absolute top-3 right-3">
                         <StatusBadge :status="car.status" />
                     </div>
@@ -156,7 +208,11 @@ function hapus(car: MockCar): void {
                         <Pencil class="size-4" />
                         Ubah
                     </Button>
-                    <Button size="sm" variant="destructive" @click="hapus(car)">
+                    <Button
+                        size="sm"
+                        variant="destructive"
+                        @click="hapus(car)"
+                    >
                         <Trash2 class="size-4" />
                         Hapus
                     </Button>
@@ -190,8 +246,8 @@ function hapus(car: MockCar): void {
                             id="car-nama"
                             v-model="form.nama"
                             placeholder="Contoh: Toyota Avanza"
-                            required
                         />
+                        <InputError :message="form.errors.nama" />
                     </div>
 
                     <div class="grid gap-2">
@@ -200,8 +256,8 @@ function hapus(car: MockCar): void {
                             id="car-plat"
                             v-model="form.nomor_plat"
                             placeholder="Contoh: B 1234 XYZ"
-                            required
                         />
+                        <InputError :message="form.errors.nomor_plat" />
                     </div>
 
                     <div class="grid gap-2">
@@ -220,14 +276,64 @@ function hapus(car: MockCar): void {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                        <InputError :message="form.errors.status" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="car-foto">Foto mobil (opsional)</Label>
+                        <div v-if="previewUrl" class="relative">
+                            <img
+                                :src="previewUrl"
+                                alt="Preview"
+                                class="aspect-video w-full rounded-md border object-cover"
+                            />
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                class="absolute top-2 right-2 size-7"
+                                @click="hapusPreview"
+                            >
+                                <X class="size-4" />
+                            </Button>
+                        </div>
+                        <div v-else>
+                            <Label
+                                for="car-foto"
+                                class="flex cursor-pointer flex-col items-center gap-2 rounded-md border border-dashed p-6 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                            >
+                                <Image class="size-8" />
+                                <span class="text-sm">Pilih foto dari komputer</span>
+                                <span class="text-xs"
+                                    >JPG, PNG, atau WebP (maks. 2 MB)</span
+                                >
+                            </Label>
+                        </div>
+                        <Input
+                            id="car-foto"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            class="hidden"
+                            @change="handleFoto"
+                        />
+                        <InputError :message="form.errors.foto" />
                     </div>
                 </form>
 
                 <DialogFooter>
-                    <Button variant="outline" @click="dialogTerbuka = false"
-                        >Batal</Button
+                    <Button
+                        variant="outline"
+                        @click="dialogTerbuka = false"
                     >
-                    <Button type="submit" form="form-mobil">Simpan</Button>
+                        Batal
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="form-mobil"
+                        :disabled="form.processing"
+                    >
+                        {{ form.processing ? 'Menyimpan...' : 'Simpan' }}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

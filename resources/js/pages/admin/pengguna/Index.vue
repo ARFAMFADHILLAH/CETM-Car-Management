@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2 } from '@lucide/vue';
-import { reactive, ref } from 'vue';
-import { toast } from 'vue-sonner';
+import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
+import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,8 +32,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { mockDivisi, mockPengguna } from '@/mock/pengguna';
-import type { MockPengguna } from '@/mock/pengguna';
+import type { User } from '@/types/auth';
+import type { Divisi } from '@/types/divisi';
+import { store, update, destroy } from '@/routes/manajemen/pengguna';
 
 defineOptions({
     layout: {
@@ -43,73 +44,67 @@ defineOptions({
     },
 });
 
-const pengguna = ref<MockPengguna[]>(
-    mockPengguna.filter((p) => p.role === 'user').map((p) => ({ ...p })),
-);
+const props = defineProps<{
+    users: User[];
+    divisiList: Divisi[];
+}>();
+
+const page = usePage();
+const flash = computed(() => page.props.flash as { success?: string; error?: string } | undefined);
 
 const dialogTerbuka = ref(false);
-const sedangEdit = ref<MockPengguna | null>(null);
+const sedangEdit = ref<User | null>(null);
 
-const form = reactive({
+const form = useForm({
     nama: '',
     email: '',
+    password: '',
     no_hp: '',
-    divisi: '',
+    divisi_id: '' as string | number,
 });
 
 function bukaTambah(): void {
     sedangEdit.value = null;
     form.nama = '';
     form.email = '';
+    form.password = '';
     form.no_hp = '';
-    form.divisi = '';
+    form.divisi_id = '';
+    form.clearErrors();
     dialogTerbuka.value = true;
 }
 
-function bukaEdit(item: MockPengguna): void {
+function bukaEdit(item: User): void {
     sedangEdit.value = item;
     form.nama = item.nama;
     form.email = item.email;
+    form.password = '';
     form.no_hp = item.no_hp ?? '';
-    form.divisi = item.divisi ?? '';
+    form.divisi_id = item.divisi_id ?? '';
+    form.clearErrors();
     dialogTerbuka.value = true;
 }
 
 function simpan(): void {
     if (sedangEdit.value) {
-        const target = pengguna.value.find(
-            (p) => p.id === sedangEdit.value?.id,
-        );
-
-        if (target) {
-            Object.assign(target, {
-                nama: form.nama,
-                email: form.email,
-                no_hp: form.no_hp || null,
-                divisi: form.divisi || null,
-            });
-        }
-
-        toast.success('Data pengguna berhasil diperbarui.');
-    } else {
-        pengguna.value.push({
-            id: Math.max(0, ...pengguna.value.map((p) => p.id)) + 1,
-            nama: form.nama,
-            email: form.email,
-            no_hp: form.no_hp || null,
-            divisi: form.divisi || null,
-            role: 'user',
-            email_verified_at: null,
+        form.put(update.url(sedangEdit.value.id), {
+            onSuccess: () => {
+                dialogTerbuka.value = false;
+            },
         });
-        toast.success('Pengguna baru berhasil ditambahkan.');
+    } else {
+        form.post(store.url(), {
+            onSuccess: () => {
+                dialogTerbuka.value = false;
+            },
+        });
     }
-
-    dialogTerbuka.value = false;
 }
 
-function hapus(item: MockPengguna): void {
-    pengguna.value = pengguna.value.filter((p) => p.id !== item.id);
-    toast.info(`Pengguna ${item.nama} dihapus.`);
+function hapus(item: User): void {
+    if (confirm(`Hapus pengguna "${item.nama}"?`)) {
+        router.delete(destroy.url(item.id));
+    }
 }
 </script>
 
@@ -119,6 +114,13 @@ function hapus(item: MockPengguna): void {
     <div
         class="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4"
     >
+        <div
+            v-if="flash?.success"
+            class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700"
+        >
+            {{ flash.success }}
+        </div>
+
         <div class="flex flex-wrap items-center justify-between gap-3">
             <Heading
                 title="Manajemen Pengguna"
@@ -135,7 +137,7 @@ function hapus(item: MockPengguna): void {
                 <CardTitle>Daftar Pengguna</CardTitle>
             </CardHeader>
             <CardContent>
-                <Table v-if="pengguna.length > 0">
+                <Table v-if="users.length > 0">
                     <TableHeader>
                         <TableRow>
                             <TableHead>Nama</TableHead>
@@ -147,7 +149,7 @@ function hapus(item: MockPengguna): void {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="item in pengguna" :key="item.id">
+                        <TableRow v-for="item in users" :key="item.id">
                             <TableCell class="font-medium">{{
                                 item.nama
                             }}</TableCell>
@@ -155,7 +157,7 @@ function hapus(item: MockPengguna): void {
                             <TableCell>{{ item.no_hp ?? '-' }}</TableCell>
                             <TableCell>
                                 <Badge v-if="item.divisi" variant="outline">{{
-                                    item.divisi
+                                    item.divisi.nama_divisi
                                 }}</Badge>
                                 <span v-else>-</span>
                             </TableCell>
@@ -168,7 +170,7 @@ function hapus(item: MockPengguna): void {
                                     "
                                     :class="
                                         item.email_verified_at
-                                            ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400'
+                                            ? 'border-blue-200 bg-blue-50 text-blue-700'
                                             : ''
                                     "
                                 >
@@ -234,7 +236,12 @@ function hapus(item: MockPengguna): void {
                 >
                     <div class="grid gap-2">
                         <Label for="u-nama">Nama lengkap</Label>
-                        <Input id="u-nama" v-model="form.nama" required />
+                        <Input
+                            id="u-nama"
+                            v-model="form.nama"
+                            required
+                        />
+                        <InputError :message="form.errors.nama" />
                     </div>
 
                     <div class="grid gap-2">
@@ -245,37 +252,65 @@ function hapus(item: MockPengguna): void {
                             type="email"
                             required
                         />
+                        <InputError :message="form.errors.email" />
+                    </div>
+
+                    <div v-if="!sedangEdit" class="grid gap-2">
+                        <Label for="u-password">Password</Label>
+                        <Input
+                            id="u-password"
+                            v-model="form.password"
+                            type="password"
+                            required
+                        />
+                        <InputError :message="form.errors.password" />
                     </div>
 
                     <div class="grid gap-2">
                         <Label for="u-nohp">Nomor HP</Label>
-                        <Input id="u-nohp" v-model="form.no_hp" type="tel" />
+                        <Input
+                            id="u-nohp"
+                            v-model="form.no_hp"
+                            type="tel"
+                        />
+                        <InputError :message="form.errors.no_hp" />
                     </div>
 
                     <div class="grid gap-2">
                         <Label for="u-divisi">Divisi</Label>
-                        <Select v-model="form.divisi">
+                        <Select v-model="form.divisi_id">
                             <SelectTrigger id="u-divisi" class="w-full">
                                 <SelectValue placeholder="Pilih divisi" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
-                                    v-for="divisi in mockDivisi"
-                                    :key="divisi"
-                                    :value="divisi"
+                                    v-for="divisi in divisiList"
+                                    :key="divisi.id"
+                                    :value="divisi.id"
                                 >
-                                    {{ divisi }}
+                                    {{ divisi.nama_divisi }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                        <InputError :message="form.errors.divisi_id" />
                     </div>
                 </form>
 
                 <DialogFooter>
-                    <Button variant="outline" @click="dialogTerbuka = false"
-                        >Batal</Button
+                    <Button
+                        variant="outline"
+                        :disabled="form.processing"
+                        @click="dialogTerbuka = false"
                     >
-                    <Button type="submit" form="form-pengguna">Simpan</Button>
+                        Batal
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="form-pengguna"
+                        :disabled="form.processing"
+                    >
+                        {{ form.processing ? 'Menyimpan...' : 'Simpan' }}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

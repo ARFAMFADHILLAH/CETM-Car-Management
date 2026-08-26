@@ -8,6 +8,8 @@ export type User = {
     nama: string;
     email: string;
     no_hp?: string | null;
+    divisi_id?: number | null;
+    divisi?: { id: number; nama_divisi: string } | null;
     avatar?: string;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;

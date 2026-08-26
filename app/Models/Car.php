@@ -15,10 +15,11 @@ use Illuminate\Support\Carbon;
  * @property string $nama
  * @property string $nomor_plat
  * @property CarStatus $status
+ * @property string|null $foto
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['nama', 'nomor_plat', 'status'])]
+#[Fillable(['nama', 'nomor_plat', 'status', 'foto'])]
 class Car extends Model
 {
     /** @use HasFactory<CarFactory> */

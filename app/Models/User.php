@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -24,6 +25,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $no_hp
+ * @property int|null $divisi_id
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -31,8 +33,10 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Role|null $role
+ * @property Divisi|null $divisi
+ * @property int|null $jumlah_peminjaman
  */
-#[Fillable(['nama', 'email', 'password', 'no_hp'])]
+#[Fillable(['nama', 'email', 'password', 'no_hp', 'divisi_id'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -61,6 +65,26 @@ class User extends Authenticatable implements PasskeyUser
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * The division that belongs to the user.
+     *
+     * @return BelongsTo<Divisi, $this>
+     */
+    public function divisi(): BelongsTo
+    {
+        return $this->belongsTo(Divisi::class);
+    }
+
+    /**
+     * The peminjaman records that belong to the user (matched by email).
+     *
+     * @return HasMany<Peminjaman, $this>
+     */
+    public function peminjaman(): HasMany
+    {
+        return $this->hasMany(Peminjaman::class, 'email_peminjam', 'email');
     }
 
     /**

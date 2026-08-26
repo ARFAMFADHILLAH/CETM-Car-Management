@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -23,7 +24,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->ensureStorageLinkExists();
         $this->configureDefaults();
+    }
+
+    /**
+     * Ensure the public storage symlink exists.
+     */
+    protected function ensureStorageLinkExists(): void
+    {
+        if (! file_exists(public_path('storage'))) {
+            Artisan::call('storage:link', ['--force' => true]);
+        }
     }
 
     /**

@@ -47,7 +47,7 @@ function waktuRelatif(iso: string): string {
                 <Bell class="size-5" />
                 <span
                     v-if="belumDibaca > 0"
-                    class="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-semibold text-white"
+                    class="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white"
                 >
                     {{ belumDibaca }}
                 </span>

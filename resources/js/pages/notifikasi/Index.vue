@@ -129,13 +129,13 @@ function waktuRelatif(iso: string): string {
                     <span
                         class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg"
                         :class="{
-                            'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400':
+                            'bg-green-500 text-white':
                                 item.tipe === 'disetujui',
-                            'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400':
+                            'bg-red-500 text-white':
                                 item.tipe === 'ditolak',
-                            'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400':
+                            'bg-yellow-500 text-white':
                                 item.tipe === 'pengingat',
-                            'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400':
+                            'bg-blue-500 text-white':
                                 item.tipe === 'info',
                         }"
                     >

@@ -7,6 +7,7 @@ import {
     Car,
     ClipboardCheck,
     ClipboardList,
+    FileBarChart,
     FilePlus2,
     LayoutGrid,
     UserCog,
@@ -35,6 +36,7 @@ import {
 } from '@/routes/manajemen';
 import { index as mobil } from '@/routes/mobil';
 import { index as notifikasi } from '@/routes/notifikasi';
+import { index as laporan } from '@/routes/laporan';
 import {
     create as peminjamanCreate,
     index as peminjamanIndex,
@@ -56,6 +58,7 @@ const mainNavItems = computed<NavItem[]>(() =>
               },
               { title: 'Jadwal Mobil', href: jadwal(), icon: CalendarDays },
               { title: 'Data Mobil', href: mobil(), icon: Car },
+              { title: 'Laporan', href: laporan(), icon: FileBarChart },
               {
                   title: 'Manajemen Pengguna',
                   href: manajemenPengguna(),
