@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Badge } from '@/components/ui/badge';
-import { carStatusLabel } from '@/mock/cars';
-import type { CarStatus } from '@/mock/cars';
-import { peminjamanStatusLabel } from '@/mock/peminjaman';
-import type { PeminjamanStatus } from '@/mock/peminjaman';
+import { carStatusLabel, peminjamanStatusLabel } from '@/lib/constants';
+import type { CarStatus, PeminjamanStatus } from '@/lib/constants';
 
 export type AppStatus = CarStatus | PeminjamanStatus;
 

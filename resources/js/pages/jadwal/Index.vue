@@ -14,8 +14,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { formatShortDate, formatTime } from '@/lib/format';
-import { mockPeminjaman } from '@/mock/peminjaman';
-import type { MockPeminjaman } from '@/mock/peminjaman';
+import type { PeminjamanStatus } from '@/lib/constants';
 
 defineOptions({
     layout: {
@@ -23,15 +22,27 @@ defineOptions({
     },
 });
 
-// Ekspansi tiap peminjaman menjadi acara harian untuk kalender...
+type JadwalItem = {
+    id: number;
+    nama_peminjam: string;
+    divisi: { nama_divisi: string } | null;
+    car: { nama: string } | null;
+    tanggal_mulai: string;
+    tanggal_selesai: string;
+    keperluan: string;
+    lokasi_tujuan: string;
+    nama_customer: string | null;
+    status: PeminjamanStatus;
+};
+
+const props = defineProps<{
+    peminjaman: JadwalItem[];
+}>();
+
 const events = computed<CalendarEvent[]>(() => {
     const list: CalendarEvent[] = [];
 
-    for (const item of mockPeminjaman) {
-        if (item.status !== 'disetujui' && item.status !== 'selesai') {
-            continue;
-        }
-
+    for (const item of props.peminjaman) {
         const mulai = new Date(item.tanggal_mulai);
         const selesai = new Date(item.tanggal_selesai);
         selesai.setHours(23, 59, 59, 0);
@@ -43,7 +54,7 @@ const events = computed<CalendarEvent[]>(() => {
         ) {
             list.push({
                 date: new Date(hari).toISOString(),
-                label: item.car_nama,
+                label: item.car?.nama ?? '-',
             });
         }
     }
@@ -57,14 +68,10 @@ function pilihTanggal(date: Date): void {
     tanggalDipilih.value = date;
 }
 
-function aktifPadaTanggal(date: Date): MockPeminjaman[] {
+function aktifPadaTanggal(date: Date): JadwalItem[] {
     const waktu = date.getTime();
 
-    return mockPeminjaman.filter((item) => {
-        if (item.status !== 'disetujui' && item.status !== 'selesai') {
-            return false;
-        }
-
+    return props.peminjaman.filter((item) => {
         const mulai = new Date(item.tanggal_mulai);
         const selesai = new Date(item.tanggal_selesai);
         mulai.setHours(0, 0, 0, 0);
@@ -120,7 +127,7 @@ const jadwalHariIni = computed(() => aktifPadaTanggal(tanggalDipilih.value));
                     >
                         <div class="flex items-center justify-between gap-2">
                             <p class="text-sm font-medium">
-                                {{ item.car_nama }}
+                                {{ item.car?.nama ?? '-' }}
                             </p>
                             <StatusBadge :status="item.status" />
                         </div>
@@ -132,7 +139,7 @@ const jadwalHariIni = computed(() => aktifPadaTanggal(tanggalDipilih.value));
                             <span class="font-medium">{{
                                 item.nama_peminjam
                             }}</span>
-                            · {{ item.divisi }}
+                            · {{ item.divisi?.nama_divisi ?? '-' }}
                         </p>
                         <p class="text-xs text-muted-foreground">
                             {{ item.keperluan }} → {{ item.lokasi_tujuan }}

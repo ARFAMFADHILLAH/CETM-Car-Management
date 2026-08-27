@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import { BellRing, CheckCheck, CheckCircle2, Info, XCircle } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockNotifikasi } from '@/mock/notifikasi';
-import type { MockNotifikasi } from '@/mock/notifikasi';
+import { waktuRelatif } from '@/lib/format';
+import type { NotifikasiTipe } from '@/lib/constants';
+import { read as readRoute, readAll as readAllRoute } from '@/routes/notifikasi';
 
 defineOptions({
     layout: {
@@ -15,31 +17,44 @@ defineOptions({
     },
 });
 
-const notifikasi = ref<MockNotifikasi[]>([...mockNotifikasi]);
+type NotifikasiItem = {
+    id: number;
+    judul: string;
+    pesan: string;
+    tipe: NotifikasiTipe;
+    dibaca: boolean;
+    created_at: string;
+};
+
+const props = defineProps<{
+    notifikasi: NotifikasiItem[];
+}>();
+
 const tabAktif = ref<'semua' | 'belum'>('semua');
+
+const readForm = useForm({});
+const readAllForm = useForm({});
 
 const daftar = computed(() =>
     tabAktif.value === 'belum'
-        ? notifikasi.value.filter((item) => !item.dibaca)
-        : notifikasi.value,
+        ? props.notifikasi.filter((item) => !item.dibaca)
+        : props.notifikasi,
 );
 
 const belumDibaca = computed(
-    () => notifikasi.value.filter((item) => !item.dibaca).length,
+    () => props.notifikasi.filter((item) => !item.dibaca).length,
 );
 
-function tandaiDibaca(item: MockNotifikasi): void {
-    item.dibaca = true;
+function tandaiDibaca(item: NotifikasiItem): void {
+    readForm.put(readRoute.url(item.id));
 }
 
 function tandaiSemua(): void {
-    for (const item of notifikasi.value) {
-        item.dibaca = true;
-    }
+    readAllForm.put(readAllRoute.url());
 }
 
-function ikonTipe(tipe: MockNotifikasi['tipe']): typeof Info {
-    const map: Record<MockNotifikasi['tipe'], typeof Info> = {
+function ikonTipe(tipe: NotifikasiTipe): typeof Info {
+    const map: Record<NotifikasiTipe, typeof Info> = {
         disetujui: CheckCircle2,
         ditolak: XCircle,
         pengingat: BellRing,
@@ -47,21 +62,6 @@ function ikonTipe(tipe: MockNotifikasi['tipe']): typeof Info {
     };
 
     return map[tipe];
-}
-
-function waktuRelatif(iso: string): string {
-    const selisih = Date.now() - new Date(iso).getTime();
-    const jam = Math.floor(selisih / (1000 * 60 * 60));
-
-    if (jam < 1) {
-        return 'Baru saja';
-    }
-
-    if (jam < 24) {
-        return `${jam} jam lalu`;
-    }
-
-    return `${Math.floor(jam / 24)} hari lalu`;
 }
 </script>
 
@@ -78,7 +78,7 @@ function waktuRelatif(iso: string): string {
             />
             <Button
                 variant="outline"
-                :disabled="belumDibaca === 0"
+                :disabled="belumDibaca === 0 || readAllForm.processing"
                 @click="tandaiSemua"
             >
                 <CheckCheck class="mr-1 size-4" />
@@ -131,12 +131,10 @@ function waktuRelatif(iso: string): string {
                         :class="{
                             'bg-green-500 text-white':
                                 item.tipe === 'disetujui',
-                            'bg-red-500 text-white':
-                                item.tipe === 'ditolak',
+                            'bg-red-500 text-white': item.tipe === 'ditolak',
                             'bg-yellow-500 text-white':
                                 item.tipe === 'pengingat',
-                            'bg-blue-500 text-white':
-                                item.tipe === 'info',
+                            'bg-blue-500 text-white': item.tipe === 'info',
                         }"
                     >
                         <component :is="ikonTipe(item.tipe)" class="size-4" />
@@ -155,7 +153,7 @@ function waktuRelatif(iso: string): string {
                             {{ item.pesan }}
                         </p>
                         <p class="mt-1 text-xs text-muted-foreground/70">
-                            {{ waktuRelatif(item.waktu) }}
+                            {{ waktuRelatif(item.created_at) }}
                         </p>
                     </div>
 
@@ -163,6 +161,7 @@ function waktuRelatif(iso: string): string {
                         v-if="!item.dibaca"
                         size="sm"
                         variant="ghost"
+                        :disabled="readForm.processing"
                         @click="tandaiDibaca(item)"
                     >
                         Tandai dibaca

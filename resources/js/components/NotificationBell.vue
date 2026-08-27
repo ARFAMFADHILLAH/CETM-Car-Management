@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { Bell } from '@lucide/vue';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -10,28 +10,33 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { mockNotifikasi } from '@/mock/notifikasi';
-import { index as notifikasiRoute } from '@/routes/notifikasi';
+import { waktuRelatif } from '@/lib/format';
+import type { NotifikasiTipe } from '@/lib/constants';
+import { index as notifikasiRoute, readAll as readAllRoute } from '@/routes/notifikasi';
 
-const belumDibaca = computed(
-    () => mockNotifikasi.filter((item) => !item.dibaca).length,
-);
+type NotifikasiItem = {
+    id: number;
+    judul: string;
+    pesan: string;
+    tipe: NotifikasiTipe;
+    dibaca: boolean;
+    created_at: string;
+};
 
-const terbaru = computed(() => mockNotifikasi.slice(0, 4));
+interface PageProps {
+    notifikasi: NotifikasiItem[];
+    notifikasiBelumDibaca: number;
+    [key: string]: unknown;
+}
 
-function waktuRelatif(iso: string): string {
-    const selisih = Date.now() - new Date(iso).getTime();
-    const jam = Math.floor(selisih / (1000 * 60 * 60));
+const page = usePage<PageProps>();
 
-    if (jam < 1) {
-        return 'Baru saja';
-    }
+const notifikasi = computed(() => page.props.notifikasi ?? []);
+const belumDibaca = computed(() => page.props.notifikasiBelumDibaca ?? 0);
+const terbaru = computed(() => notifikasi.value.slice(0, 4));
 
-    if (jam < 24) {
-        return `${jam} jam lalu`;
-    }
-
-    return `${Math.floor(jam / 24)} hari lalu`;
+function tandaiSemua(): void {
+    router.put(readAllRoute.url());
 }
 </script>
 
@@ -55,7 +60,16 @@ function waktuRelatif(iso: string): string {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" class="w-80">
-            <DropdownMenuLabel>Notifikasi</DropdownMenuLabel>
+            <div class="flex items-center justify-between pr-3">
+                <DropdownMenuLabel>Notifikasi</DropdownMenuLabel>
+                <button
+                    v-if="belumDibaca > 0"
+                    class="text-xs font-medium text-primary hover:underline"
+                    @click="tandaiSemua"
+                >
+                    Tandai semua dibaca
+                </button>
+            </div>
             <DropdownMenuSeparator />
 
             <div
@@ -77,7 +91,7 @@ function waktuRelatif(iso: string): string {
                     item.pesan
                 }}</span>
                 <span class="text-[11px] text-muted-foreground/70">{{
-                    waktuRelatif(item.waktu)
+                    waktuRelatif(item.created_at)
                 }}</span>
             </Link>
 

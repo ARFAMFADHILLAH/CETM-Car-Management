@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
@@ -30,8 +31,12 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
-import { peminjamanStatusLabel } from '@/mock/peminjaman';
-import type { PeminjamanStatus } from '@/mock/peminjaman';
+import { peminjamanStatusLabel } from '@/lib/constants';
+import type { PeminjamanStatus } from '@/lib/constants';
+import {
+    approve as approveRoute,
+    reject as rejectRoute,
+} from '@/routes/approval';
 
 defineOptions({
     layout: {
@@ -73,6 +78,17 @@ const pengajuan = computed(() =>
 );
 
 const detail = ref<(typeof props.peminjaman)[number] | null>(null);
+
+const approveForm = useForm({});
+const rejectForm = useForm({});
+
+function setujui(item: (typeof props.peminjaman)[number]): void {
+    approveForm.put(approveRoute.url(item.id));
+}
+
+function tolak(item: (typeof props.peminjaman)[number]): void {
+    rejectForm.put(rejectRoute.url(item.id));
+}
 
 function bukaDetail(item: (typeof props.peminjaman)[number]): void {
     detail.value = item;
@@ -188,6 +204,23 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                                 <StatusBadge :status="item.status" />
                             </TableCell>
                             <TableCell class="space-x-1 text-right">
+                                <template v-if="item.status === 'pending'">
+                                    <Button
+                                        size="sm"
+                                        :disabled="approveForm.processing"
+                                        @click="setujui(item)"
+                                    >
+                                        Setujui
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        :disabled="rejectForm.processing"
+                                        @click="tolak(item)"
+                                    >
+                                        Tolak
+                                    </Button>
+                                </template>
                                 <Button
                                     size="sm"
                                     variant="outline"

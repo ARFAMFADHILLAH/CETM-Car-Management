@@ -39,3 +39,24 @@ export function formatDateTime(value: string | Date): string {
 export function formatTime(value: string | Date): string {
     return timeFormatter.format(new Date(value));
 }
+
+export function waktuRelatif(value: string | Date): string {
+    const selisih = Date.now() - new Date(value).getTime();
+    const menit = Math.floor(selisih / (1000 * 60));
+
+    if (menit < 1) {
+        return 'Baru saja';
+    }
+
+    if (menit < 60) {
+        return `${menit} menit lalu`;
+    }
+
+    const jam = Math.floor(menit / 60);
+
+    if (jam < 24) {
+        return `${jam} jam lalu`;
+    }
+
+    return `${Math.floor(jam / 24)} hari lalu`;
+}

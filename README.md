@@ -43,9 +43,14 @@ Dibangun dengan Laravel 13.26 (PHP ^8.5) + Inertia.js v3 + Vue 3 + TypeScript + 
 - Tampilan: tema terang / gelap / ikuti sistem
 - Hapus akun (perlu konfirmasi kata sandi)
 
+### Notifikasi
+- Dibuat otomatis dari aksi real: saat admin **menyetujui / menolak** pengajuan, user pemohon menerima notifikasi (data persisten di tabel `notifikasi`, bukan dummy/static)
+- Tandai satu notifikasi sudah dibaca, atau tandai semua
+- Bell notifikasi di header menampilkan jumlah belum dibaca (dari database)
+
 ### Lainnya
 - Dashboard terproteksi middleware `auth` + `verified`
-- Notifikasi aktivitas peminjaman
+- Semua halaman (dashboard, jadwal, notifikasi, daftar pengajuan, data mobil, chatbot, laporan) menampilkan **data real dari database** — tidak ada mock/dummy; jika kosong, halaman tampil kosong
 
 ## Alur Bisnis
 
@@ -108,28 +113,32 @@ Setelah `git pull` selalu jalankan `php artisan migrate` untuk migrasi terbaru. 
 | reka-ui + Lucide | Komponen UI headless & ikon |
 | DomPDF + Maatwebsite/Excel | Export laporan ke PDF dan Excel |
 | MySQL/MariaDB | Basis data |
-| Pest 5 (Feature Tests) | Pengujian otomatis — 98 kasus uji |
+| Pest 5 (Feature Tests) | Pengujian otomatis — 106 kasus uji (+ 10 baru) |
 
 ## Struktur Direktori
 
 ```
 ├── app/
 │   ├── Concerns/                 # ProfileValidationRules
-│   ├── Enums/                    # CarStatus, PeminjamanStatus, UserRole
+│   ├── Enums/                    # CarStatus, PeminjamanStatus, NotifikasiTipe, UserRole
 │   ├── Exports/                  # PeminjamanExport (Maatwebsite)
+│   ├── Services/                 # NotifikasiService (buat notifikasi dari aksi real)
 │   ├── Http/Controllers/
 │   │   ├── CarController.php     # CRUD mobil
 │   │   ├── ChatbotController.php # chatbot keyword-based
+│   │   ├── DashboardController.php # statistik & jadwal dashboard (data DB)
+│   │   ├── JadwalController.php    # kalender jadwal (data DB)
+│   │   ├── NotifikasiController.php # index + mark read (data DB)
 │   │   ├── ManajemenAdminController.php
 │   │   ├── ManajemenPenggunaController.php
-│   │   ├── PeminjamanController.php  # ajukan, daftar, approve
+│   │   ├── PeminjamanController.php  # ajukan, daftar, approve, reject (buat notifikasi)
 │   │   ├── ReportController.php      # laporan + export PDF/Excel
 │   │   └── Settings/            # profil, keamanan akun
-│   └── Models/                  # User, Car, Peminjaman, Divisi, Role
+│   └── Models/                  # User, Car, Peminjaman, Divisi, Role, Notifikasi
 ├── database/
-│   ├── migrations/              # users, cars, peminjaman, divisi, roles
-│   ├── factories/               # UserFactory, CarFactory, PeminjamanFactory
-│   └── seeders/                 # akun demo, data mobil, divisi
+│   ├── migrations/              # users, cars, peminjaman, divisi, roles, notifikasi
+│   ├── factories/               # UserFactory, CarFactory, PeminjamanFactory, NotifikasiFactory
+│   └── seeders/                 # akun demo, data mobil, divisi (tanpa data contoh/dummy)
 ├── resources/js/
 │   ├── pages/
 │   │   ├── admin/               # approve peminjaman, manajemen pengguna/admin, laporan
@@ -140,10 +149,10 @@ Setelah `git pull` selalu jalankan `php artisan migrate` untuk migrasi terbaru. 
 │   │   ├── notifikasi/          # notifikasi
 │   │   ├── settings/            # profil, keamanan, tampilan
 │   │   └── auth/                # login, register, lupa sandi, 2FA, passkey
-│   ├── components/              # komponen UI (sidebar, form, 2FA, passkey, chatbot)
+│   ├── components/              # komponen UI (sidebar, form, 2FA, passkey, chatbot, notification bell)
 │   ├── layouts/                 # AppLayout, AuthLayout, settings
 │   ├── composables/             # useAppearance, useTwoFactorAuth, dll.
-│   ├── mock/                    # data mock (peminjaman)
+│   ├── lib/constants.ts         # status labels (carStatusLabel, peminjamanStatusLabel) + tipe
 │   ├── actions/                 # (Wayfinder) controller actions
 │   └── routes/                  # (Wayfinder) fungsi route bertipe
 ├── routes/
@@ -154,6 +163,7 @@ Setelah `git pull` selalu jalankan `php artisan migrate` untuk migrasi terbaru. 
 ├── tests/
 │   ├── Feature/Auth/            # login, register, verifikasi email, reset, 2FA
 │   ├── Feature/Settings/        # profil, keamanan
+│   ├── Feature/                 # dashboard, jadwal, notifikasi, peminjaman, laporan, mobil
 │   └── Unit/
 └── public/
 ```
@@ -161,7 +171,7 @@ Setelah `git pull` selalu jalankan `php artisan migrate` untuk migrasi terbaru. 
 ## Menjalankan Pengujian
 
 ```bash
-php artisan test --compact      # seluruh test suite (98 tests, Pest)
+php artisan test --compact      # seluruh test suite (106 tests, Pest)
 php artisan test --filter=NamaTest  # jalankan test tertentu
 composer run lint               # format kode PHP (Pint)
 npm run types:check             # type-check TypeScript (vue-tsc)

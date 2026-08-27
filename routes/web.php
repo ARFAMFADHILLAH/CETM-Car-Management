@@ -2,8 +2,11 @@
 
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\ManajemenAdminController;
 use App\Http\Controllers\ManajemenPenggunaController;
+use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PeminjamanController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
@@ -11,13 +14,15 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', 'dashboard')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Halaman bersama (pengguna & admin)...
     Route::middleware('role:user,admin')->group(function () {
-        Route::inertia('jadwal-mobil', 'jadwal/Index')->name('jadwal.index');
+        Route::get('jadwal-mobil', [JadwalController::class, 'index'])->name('jadwal.index');
         Route::get('data-mobil', [CarController::class, 'index'])->name('mobil.index');
-        Route::inertia('notifikasi', 'notifikasi/Index')->name('notifikasi.index');
+        Route::get('notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
+        Route::put('notifikasi/{notifikasi}/baca', [NotifikasiController::class, 'markRead'])->name('notifikasi.read');
+        Route::put('notifikasi/baca-semua', [NotifikasiController::class, 'markAllRead'])->name('notifikasi.readAll');
         Route::inertia('chatbot', 'chatbot/Index')->name('chatbot.show');
         Route::post('api/chatbot', [ChatbotController::class, 'chat'])->name('chatbot.chat');
     });
@@ -33,6 +38,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Halaman khusus admin...
     Route::middleware('role:admin')->group(function () {
         Route::get('approve-peminjaman', [PeminjamanController::class, 'index'])->name('approval.index');
+        Route::put('approve-peminjaman/{peminjaman}/setujui', [PeminjamanController::class, 'approve'])->name('approval.approve');
+        Route::put('approve-peminjaman/{peminjaman}/tolak', [PeminjamanController::class, 'reject'])->name('approval.reject');
         Route::get('manajemen-pengguna', [ManajemenPenggunaController::class, 'index'])->name('manajemen.pengguna');
         Route::post('manajemen-pengguna', [ManajemenPenggunaController::class, 'store'])->name('manajemen.pengguna.store');
         Route::put('manajemen-pengguna/{user}', [ManajemenPenggunaController::class, 'update'])->name('manajemen.pengguna.update');

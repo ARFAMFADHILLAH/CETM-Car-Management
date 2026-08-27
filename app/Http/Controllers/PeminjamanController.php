@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CarStatus;
+use App\Enums\NotifikasiTipe;
 use App\Enums\PeminjamanStatus;
 use App\Http\Requests\StorePeminjamanRequest;
 use App\Models\Car;
 use App\Models\Divisi;
 use App\Models\Peminjaman;
+use App\Services\NotifikasiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +18,8 @@ use Inertia\Response;
 
 class PeminjamanController extends Controller
 {
+    public function __construct(private NotifikasiService $notifikasi) {}
+
     /**
      * Display peminjaman list (user sees own, admin sees all).
      */
@@ -120,5 +124,45 @@ class PeminjamanController extends Controller
 
         return to_route('peminjaman.index')
             ->with('success', 'Pengajuan peminjaman berhasil dikirim.');
+    }
+
+    /**
+     * Approve a peminjaman request and notify the borrower.
+     */
+    public function approve(Peminjaman $peminjaman): RedirectResponse
+    {
+        $peminjaman->update(['status' => PeminjamanStatus::Disetujui]);
+
+        if ($user = $peminjaman->user) {
+            $this->notifikasi->buat(
+                $user,
+                'Pengajuan disetujui',
+                "Pengajuan peminjaman {$peminjaman->car?->nama} ({$peminjaman->lokasi_tujuan}) telah disetujui.",
+                NotifikasiTipe::Disetujui,
+            );
+        }
+
+        return to_route('approval.index')
+            ->with('success', 'Pengajuan peminjaman disetujui.');
+    }
+
+    /**
+     * Reject a peminjaman request and notify the borrower.
+     */
+    public function reject(Peminjaman $peminjaman): RedirectResponse
+    {
+        $peminjaman->update(['status' => PeminjamanStatus::Ditolak]);
+
+        if ($user = $peminjaman->user) {
+            $this->notifikasi->buat(
+                $user,
+                'Pengajuan ditolak',
+                "Pengajuan peminjaman {$peminjaman->car?->nama} ({$peminjaman->lokasi_tujuan}) ditolak.",
+                NotifikasiTipe::Ditolak,
+            );
+        }
+
+        return to_route('approval.index')
+            ->with('success', 'Pengajuan peminjaman ditolak.');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Notifikasi;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,12 +36,27 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $notifikasi = $request->user()
+            ? Notifikasi::query()
+                ->where('user_id', $request->user()->id)
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get()
+            : collect();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user()?->loadMissing('role'),
             ],
+            'notifikasi' => $notifikasi,
+            'notifikasiBelumDibaca' => $request->user()
+                ? Notifikasi::query()
+                    ->where('user_id', $request->user()->id)
+                    ->where('dibaca', false)
+                    ->count()
+                : 0,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

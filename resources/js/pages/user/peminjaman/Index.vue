@@ -21,8 +21,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
-import { peminjamanStatusLabel } from '@/mock/peminjaman';
-import type { PeminjamanStatus } from '@/mock/peminjaman';
+import { peminjamanStatusLabel } from '@/lib/constants';
+import type { PeminjamanStatus } from '@/lib/constants';
 import { create as peminjamanCreate } from '@/routes/peminjaman';
 
 defineOptions({

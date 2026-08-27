@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { CalendarDays, Car, ClipboardCheck, Clock3 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import Badge from '@/components/ui/badge/Badge.vue';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,10 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
-import { carStatusLabel, mockCars } from '@/mock/cars';
-import { mockPeminjaman } from '@/mock/peminjaman';
-import type { MockPeminjaman } from '@/mock/peminjaman';
+import type { PeminjamanStatus } from '@/lib/constants';
 import { dashboard } from '@/routes';
 import { index as approval } from '@/routes/approval';
+import { approve as approveRoute, reject as rejectRoute } from '@/routes/approval';
 import { create as peminjamanCreate } from '@/routes/peminjaman';
 
 defineOptions({
@@ -33,43 +32,39 @@ defineOptions({
     },
 });
 
-const page = usePage();
-const user = computed(() => page.props.auth.user);
-const isAdmin = computed(() => user.value?.role?.role === 'admin');
+type PeminjamanItem = {
+    id: number;
+    nama_peminjam: string;
+    divisi: { nama_divisi: string } | null;
+    car: { nama: string } | null;
+    tanggal_mulai: string;
+    tanggal_selesai: string;
+    keperluan: string;
+    lokasi_tujuan: string;
+    status: PeminjamanStatus;
+};
 
-const mobilTersedia = computed(
-    () => mockCars.filter((car) => car.status === 'tersedia').length,
-);
+const props = defineProps<{
+    totalMobil: number;
+    mobilTersedia: number;
+    mobilDiservis: number;
+    pengajuanPending: PeminjamanItem[];
+    jadwalTerdekat: PeminjamanItem[];
+    isAdmin: boolean;
+}>();
 
-const mobilDiservis = computed(
-    () => mockCars.filter((car) => car.status !== 'tersedia').length,
-);
+const setujuiForm = useForm({});
+const tolakForm = useForm({});
 
-const pengajuanPending = computed(() =>
-    mockPeminjaman.filter((item) => item.status === 'pending'),
-);
-
-const jadwalTerdekat = computed(() =>
-    [...mockPeminjaman]
-        .filter((item) => item.status === 'disetujui')
-        .sort(
-            (a, b) =>
-                new Date(a.tanggal_mulai).getTime() -
-                new Date(b.tanggal_mulai).getTime(),
-        )
-        .slice(0, 4),
-);
-
-// State lokal untuk aksi cepat admin (fase frontend saja)...
-const pengajuan = ref<MockPeminjaman[]>([...pengajuanPending.value]);
-
-function setujui(item: MockPeminjaman): void {
-    pengajuan.value = pengajuan.value.filter((p) => p.id !== item.id);
+function setujui(item: PeminjamanItem): void {
+    setujuiForm.put(approveRoute.url(item.id));
 }
 
-function tolak(item: MockPeminjaman): void {
-    pengajuan.value = pengajuan.value.filter((p) => p.id !== item.id);
+function tolak(item: PeminjamanItem): void {
+    tolakForm.put(rejectRoute.url(item.id));
 }
+
+const jadwalTerdekat = computed(() => props.jadwalTerdekat);
 </script>
 
 <template>
@@ -80,7 +75,7 @@ function tolak(item: MockPeminjaman): void {
     >
         <div>
             <h1 class="text-xl font-semibold tracking-tight">
-                Selamat datang, {{ user?.nama }}
+                Selamat datang
             </h1>
             <p class="text-sm text-muted-foreground">
                 {{
@@ -105,7 +100,7 @@ function tolak(item: MockPeminjaman): void {
                 <CardContent>
                     <p class="text-3xl font-bold">{{ mobilTersedia }}</p>
                     <p class="text-xs text-muted-foreground">
-                        dari {{ mockCars.length }} mobil
+                        dari {{ totalMobil }} mobil
                     </p>
                 </CardContent>
             </Card>
@@ -127,12 +122,12 @@ function tolak(item: MockPeminjaman): void {
                 </CardHeader>
                 <CardContent>
                     <p v-if="isAdmin" class="text-3xl font-bold">
-                        {{ pengajuan.length }}
+                        {{ pengajuanPending.length }}
                     </p>
                     <template v-else>
                         <p class="text-3xl font-bold">{{ mobilDiservis }}</p>
                         <p class="text-xs text-muted-foreground">
-                            {{ carStatusLabel.di_servis }} / tidak tersedia
+                            di servis / tidak tersedia
                         </p>
                     </template>
                 </CardContent>
@@ -173,7 +168,7 @@ function tolak(item: MockPeminjaman): void {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    <Table v-if="pengajuan.length > 0">
+                    <Table v-if="pengajuanPending.length > 0">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Peminjam</TableHead>
@@ -185,16 +180,19 @@ function tolak(item: MockPeminjaman): void {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="item in pengajuan" :key="item.id">
+                            <TableRow
+                                v-for="item in pengajuanPending"
+                                :key="item.id"
+                            >
                                 <TableCell>
                                     <p class="font-medium">
                                         {{ item.nama_peminjam }}
                                     </p>
                                     <p class="text-xs text-muted-foreground">
-                                        {{ item.divisi }}
+                                        {{ item.divisi?.nama_divisi ?? '-' }}
                                     </p>
                                 </TableCell>
-                                <TableCell>{{ item.car_nama }}</TableCell>
+                                <TableCell>{{ item.car?.nama ?? '-' }}</TableCell>
                                 <TableCell class="text-sm">
                                     {{ formatDateTime(item.tanggal_mulai) }}
                                     <br />
@@ -208,12 +206,16 @@ function tolak(item: MockPeminjaman): void {
                                     <StatusBadge :status="item.status" />
                                 </TableCell>
                                 <TableCell class="space-x-1 text-right">
-                                    <Button size="sm" @click="setujui(item)"
+                                    <Button
+                                        size="sm"
+                                        :disabled="setujuiForm.processing"
+                                        @click="setujui(item)"
                                         >Setujui</Button
                                     >
                                     <Button
                                         size="sm"
                                         variant="destructive"
+                                        :disabled="tolakForm.processing"
                                         @click="tolak(item)"
                                     >
                                         Tolak
@@ -263,7 +265,7 @@ function tolak(item: MockPeminjaman): void {
                             </span>
                             <div>
                                 <p class="text-sm font-medium">
-                                    {{ item.car_nama }}
+                                    {{ item.car?.nama ?? '-' }}
                                 </p>
                                 <p class="text-xs text-muted-foreground">
                                     {{ formatDateTime(item.tanggal_mulai) }} —
@@ -275,7 +277,9 @@ function tolak(item: MockPeminjaman): void {
                                 </p>
                             </div>
                         </div>
-                        <Badge variant="outline">{{ item.divisi }}</Badge>
+                        <Badge variant="outline">{{
+                            item.divisi?.nama_divisi ?? '-'
+                        }}</Badge>
                     </div>
 
                     <p
