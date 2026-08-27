@@ -56,7 +56,7 @@ class PeminjamanExport implements FromCollection, WithHeadings, WithMapping
             'Mobil',
             'Tanggal Mulai',
             'Tanggal Selesai',
-            'Kegiatan',
+            'Keperluan',
             'Lokasi Tujuan',
             'Customer',
             'Status',
@@ -78,7 +78,7 @@ class PeminjamanExport implements FromCollection, WithHeadings, WithMapping
             $row->car?->nama,
             $row->tanggal_mulai->format('d/m/Y H:i'),
             $row->tanggal_selesai->format('d/m/Y H:i'),
-            $row->kegiatan,
+            $row->keperluan,
             $row->lokasi_tujuan,
             $row->nama_customer,
             match ($row->status) {

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ResetPasswordPenggunaRequest;
 use App\Http\Requests\StorePenggunaRequest;
 use App\Http\Requests\UpdatePenggunaRequest;
 use App\Models\Divisi;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,7 +45,7 @@ class ManajemenPenggunaController extends Controller
         User::create([
             'nama' => $data['nama'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => $data['password'],
             'no_hp' => $data['no_hp'] ?? null,
             'divisi_id' => $data['divisi_id'] ?? null,
             'role_id' => $role?->id,
@@ -72,6 +72,19 @@ class ManajemenPenggunaController extends Controller
 
         return to_route('manajemen.pengguna')
             ->with('success', 'Data pengguna berhasil diperbarui.');
+    }
+
+    /**
+     * Reset the specified user's password.
+     */
+    public function resetPassword(ResetPasswordPenggunaRequest $request, User $user): RedirectResponse
+    {
+        $user->update([
+            'password' => $request->password,
+        ]);
+
+        return to_route('manajemen.pengguna')
+            ->with('success', 'Password pengguna berhasil direset.');
     }
 
     /**

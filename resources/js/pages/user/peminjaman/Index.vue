@@ -21,7 +21,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
-import { mockPeminjaman, peminjamanStatusLabel } from '@/mock/peminjaman';
+import { peminjamanStatusLabel } from '@/mock/peminjaman';
 import type { PeminjamanStatus } from '@/mock/peminjaman';
 import { create as peminjamanCreate } from '@/routes/peminjaman';
 
@@ -31,12 +31,25 @@ defineOptions({
     },
 });
 
+const props = defineProps<{
+    peminjaman: {
+        id: number;
+        car: { nama: string } | null;
+        tanggal_mulai: string;
+        tanggal_selesai: string;
+        keperluan: string;
+        lokasi_tujuan: string;
+        tujuan: string;
+        status: PeminjamanStatus;
+    }[];
+}>();
+
 const filter = ref<'semua' | PeminjamanStatus>('semua');
 
 const pengajuan = computed(() =>
     filter.value === 'semua'
-        ? mockPeminjaman
-        : mockPeminjaman.filter((item) => item.status === filter.value),
+        ? props.peminjaman
+        : props.peminjaman.filter((item) => item.status === filter.value),
 );
 
 const opsiFilter: ('semua' | PeminjamanStatus)[] = [
@@ -94,7 +107,7 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                         <TableRow>
                             <TableHead>Mobil</TableHead>
                             <TableHead>Tanggal Pinjam</TableHead>
-                            <TableHead>Kegiatan</TableHead>
+                            <TableHead>Keperluan</TableHead>
                             <TableHead>Tujuan</TableHead>
                             <TableHead>Status</TableHead>
                         </TableRow>
@@ -102,7 +115,7 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                     <TableBody>
                         <TableRow v-for="item in pengajuan" :key="item.id">
                             <TableCell class="font-medium">{{
-                                item.car_nama
+                                item.car?.nama ?? '-'
                             }}</TableCell>
                             <TableCell class="text-sm">
                                 {{ formatDateTime(item.tanggal_mulai) }}
@@ -110,9 +123,11 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                                 s/d {{ formatDateTime(item.tanggal_selesai) }}
                             </TableCell>
                             <TableCell class="max-w-56 truncate">{{
-                                item.kegiatan
+                                item.keperluan
                             }}</TableCell>
-                            <TableCell>{{ item.lokasi_tujuan }}</TableCell>
+                            <TableCell>
+                                {{ item.tujuan === 'dalam_kota' ? 'Dalam Kota' : 'Luar Kota' }}
+                            </TableCell>
                             <TableCell>
                                 <StatusBadge :status="item.status" />
                             </TableCell>

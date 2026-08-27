@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2 } from '@lucide/vue';
+import { KeyRound, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/table';
 import type { User } from '@/types/auth';
 import type { Divisi } from '@/types/divisi';
-import { store, update, destroy } from '@/routes/manajemen/pengguna';
+import { store, update, destroy, resetPassword } from '@/routes/manajemen/pengguna';
 
 defineOptions({
     layout: {
@@ -54,6 +54,8 @@ const flash = computed(() => page.props.flash as { success?: string; error?: str
 
 const dialogTerbuka = ref(false);
 const sedangEdit = ref<User | null>(null);
+const dialogResetPassword = ref(false);
+const sedangResetPassword = ref<User | null>(null);
 
 const form = useForm({
     nama: '',
@@ -61,6 +63,11 @@ const form = useForm({
     password: '',
     no_hp: '',
     divisi_id: '' as string | number,
+});
+
+const formResetPassword = useForm({
+    password: '',
+    password_confirmation: '',
 });
 
 function bukaTambah(): void {
@@ -105,6 +112,24 @@ function hapus(item: User): void {
     if (confirm(`Hapus pengguna "${item.nama}"?`)) {
         router.delete(destroy.url(item.id));
     }
+}
+
+function bukaResetPassword(item: User): void {
+    sedangResetPassword.value = item;
+    formResetPassword.password = '';
+    formResetPassword.password_confirmation = '';
+    formResetPassword.clearErrors();
+    dialogResetPassword.value = true;
+}
+
+function simpanResetPassword(): void {
+    if (!sedangResetPassword.value) return;
+
+    formResetPassword.put(resetPassword.url(sedangResetPassword.value.id), {
+        onSuccess: () => {
+            dialogResetPassword.value = false;
+        },
+    });
 }
 </script>
 
@@ -182,6 +207,14 @@ function hapus(item: User): void {
                                 </Badge>
                             </TableCell>
                             <TableCell class="space-x-1 text-right">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    title="Reset Password"
+                                    @click="bukaResetPassword(item)"
+                                >
+                                    <KeyRound class="size-4" />
+                                </Button>
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -310,6 +343,66 @@ function hapus(item: User): void {
                         :disabled="form.processing"
                     >
                         {{ form.processing ? 'Menyimpan...' : 'Simpan' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Dialog reset password -->
+        <Dialog
+            :open="dialogResetPassword"
+            @update:open="(open) => (dialogResetPassword = open)"
+        >
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Reset Password</DialogTitle>
+                    <DialogDescription>
+                        Atur ulang password untuk
+                        {{ sedangResetPassword?.nama }}.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <form
+                    id="form-reset-password"
+                    class="grid gap-4"
+                    @submit.prevent="simpanResetPassword"
+                >
+                    <div class="grid gap-2">
+                        <Label for="rp-password">Password baru</Label>
+                        <Input
+                            id="rp-password"
+                            v-model="formResetPassword.password"
+                            type="password"
+                            required
+                        />
+                        <InputError :message="formResetPassword.errors.password" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="rp-password-confirm">Konfirmasi password</Label>
+                        <Input
+                            id="rp-password-confirm"
+                            v-model="formResetPassword.password_confirmation"
+                            type="password"
+                            required
+                        />
+                    </div>
+                </form>
+
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        :disabled="formResetPassword.processing"
+                        @click="dialogResetPassword = false"
+                    >
+                        Batal
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="form-reset-password"
+                        :disabled="formResetPassword.processing"
+                    >
+                        {{ formResetPassword.processing ? 'Menyimpan...' : 'Simpan' }}
                     </Button>
                 </DialogFooter>
             </DialogContent>

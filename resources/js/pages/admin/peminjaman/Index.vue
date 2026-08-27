@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -30,8 +30,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
-import { mockPeminjaman, peminjamanStatusLabel } from '@/mock/peminjaman';
-import type { MockPeminjaman, PeminjamanStatus } from '@/mock/peminjaman';
+import { peminjamanStatusLabel } from '@/mock/peminjaman';
+import type { PeminjamanStatus } from '@/mock/peminjaman';
 
 defineOptions({
     layout: {
@@ -41,31 +41,59 @@ defineOptions({
     },
 });
 
+const props = defineProps<{
+    peminjaman: {
+        id: number;
+        nama_peminjam: string;
+        email_peminjam: string;
+        no_hp: string | null;
+        divisi: { nama_divisi: string } | null;
+        car: { nama: string } | null;
+        user: { nama: string; foto_url: string | null } | null;
+        tanggal_mulai: string;
+        tanggal_selesai: string;
+        keperluan: string;
+        lokasi_tujuan: string;
+        tujuan: string;
+        km_awal: number;
+        km_akhir: number | null;
+        tangki_bbm: string;
+        nama_customer: string | null;
+        catatan: string | null;
+        status: PeminjamanStatus;
+    }[];
+}>();
+
 const filter = ref<'semua' | PeminjamanStatus>('pending');
 
 const pengajuan = computed(() =>
     filter.value === 'semua'
-        ? mockPeminjaman
-        : mockPeminjaman.filter((item) => item.status === filter.value),
+        ? props.peminjaman
+        : props.peminjaman.filter((item) => item.status === filter.value),
 );
 
-const detail = ref<MockPeminjaman | null>(null);
+const detail = ref<(typeof props.peminjaman)[number] | null>(null);
 
-function bukaDetail(item: MockPeminjaman): void {
+function bukaDetail(item: (typeof props.peminjaman)[number]): void {
     detail.value = item;
 }
 
-function setujui(item: MockPeminjaman): void {
-    item.status = 'disetujui';
-    detail.value = null;
-    toast.success(`Pengajuan ${item.nama_peminjam} disetujui.`);
+function inisial(nama: string): string {
+    return nama
+        .split(' ')
+        .map((w) => w.charAt(0))
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
 }
 
-function tolak(item: MockPeminjaman): void {
-    item.status = 'ditolak';
-    detail.value = null;
-    toast.info(`Pengajuan ${item.nama_peminjam} ditolak.`);
-}
+const tangkiBbmLabel: Record<string, string> = {
+    full: 'Penuh',
+    '3/4': '3/4',
+    '1/2': '1/2',
+    '1/4': '1/4',
+    empty: 'Kosong',
+};
 
 const opsiFilter: ('semua' | PeminjamanStatus)[] = [
     'semua',
@@ -126,20 +154,36 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                     <TableBody>
                         <TableRow v-for="item in pengajuan" :key="item.id">
                             <TableCell>
-                                <p class="font-medium">
-                                    {{ item.nama_peminjam }}
-                                </p>
-                                <p class="text-xs text-muted-foreground">
-                                    {{ item.divisi }}
-                                </p>
+                                <div class="flex items-center gap-3">
+                                    <Avatar class="size-9">
+                                        <AvatarImage
+                                            v-if="item.user?.foto_url"
+                                            :src="item.user.foto_url"
+                                            :alt="item.nama_peminjam"
+                                        />
+                                        <AvatarFallback class="text-xs">
+                                            {{ inisial(item.nama_peminjam) }}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p class="font-medium">
+                                            {{ item.nama_peminjam }}
+                                        </p>
+                                        <p class="text-xs text-muted-foreground">
+                                            {{ item.divisi?.nama_divisi ?? '-' }}
+                                        </p>
+                                    </div>
+                                </div>
                             </TableCell>
-                            <TableCell>{{ item.car_nama }}</TableCell>
+                            <TableCell>{{ item.car?.nama ?? '-' }}</TableCell>
                             <TableCell class="text-sm">
                                 {{ formatDateTime(item.tanggal_mulai) }}
                                 <br />
                                 s/d {{ formatDateTime(item.tanggal_selesai) }}
                             </TableCell>
-                            <TableCell>{{ item.lokasi_tujuan }}</TableCell>
+                            <TableCell>
+                                {{ item.tujuan === 'dalam_kota' ? 'Dalam Kota' : 'Luar Kota' }}
+                            </TableCell>
                             <TableCell>
                                 <StatusBadge :status="item.status" />
                             </TableCell>
@@ -150,21 +194,6 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                                     @click="bukaDetail(item)"
                                 >
                                     Detail
-                                </Button>
-                                <Button
-                                    v-if="item.status === 'pending'"
-                                    size="sm"
-                                    @click="setujui(item)"
-                                >
-                                    Setujui
-                                </Button>
-                                <Button
-                                    v-if="item.status === 'pending'"
-                                    size="sm"
-                                    variant="destructive"
-                                    @click="tolak(item)"
-                                >
-                                    Tolak
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -196,25 +225,49 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                         </DialogDescription>
                     </DialogHeader>
 
+                    <div class="flex items-center gap-4 rounded-lg border p-4">
+                        <Avatar class="size-14">
+                            <AvatarImage
+                                v-if="detail.user?.foto_url"
+                                :src="detail.user.foto_url"
+                                :alt="detail.nama_peminjam"
+                            />
+                            <AvatarFallback class="text-base">
+                                {{ inisial(detail.nama_peminjam) }}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p class="font-medium">{{ detail.nama_peminjam }}</p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ detail.email_peminjam }}
+                            </p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ detail.no_hp ?? '-' }}
+                            </p>
+                        </div>
+                    </div>
+
                     <dl
                         class="grid grid-cols-[130px_1fr] gap-x-4 gap-y-2.5 text-sm"
                     >
-                        <dt class="text-muted-foreground">Peminjam</dt>
-                        <dd class="font-medium">{{ detail.nama_peminjam }}</dd>
-                        <dt class="text-muted-foreground">Email</dt>
-                        <dd>{{ detail.email_peminjam }}</dd>
-                        <dt class="text-muted-foreground">No. HP</dt>
-                        <dd>{{ detail.no_hp ?? '-' }}</dd>
                         <dt class="text-muted-foreground">Divisi</dt>
-                        <dd>{{ detail.divisi }}</dd>
+                        <dd>{{ detail.divisi?.nama_divisi ?? '-' }}</dd>
                         <dt class="text-muted-foreground">Mobil</dt>
-                        <dd>{{ detail.car_nama }}</dd>
+                        <dd>{{ detail.car?.nama ?? '-' }}</dd>
                         <dt class="text-muted-foreground">Pinjam dari</dt>
                         <dd>{{ formatDateTime(detail.tanggal_mulai) }}</dd>
                         <dt class="text-muted-foreground">Pinjam sampai</dt>
                         <dd>{{ formatDateTime(detail.tanggal_selesai) }}</dd>
-                        <dt class="text-muted-foreground">Kegiatan</dt>
-                        <dd>{{ detail.kegiatan }}</dd>
+                        <dt class="text-muted-foreground">Tujuan</dt>
+                        <dd>{{ detail.tujuan === 'dalam_kota' ? 'Dalam Kota' : 'Luar Kota' }}</dd>
+                        <dt class="text-muted-foreground">Keperluan</dt>
+                        <dd>{{ detail.keperluan }}</dd>
+                        <dt class="text-muted-foreground">KM Awal</dt>
+                        <dd>{{ detail.km_awal }}</dd>
+                        <dt class="text-muted-foreground">KM Akhir</dt>
+                        <dd>{{ detail.km_akhir ?? '-' }}</dd>
+                        <dt class="text-muted-foreground">Tangki BBM</dt>
+                        <dd>{{ tangkiBbmLabel[detail.tangki_bbm] ?? detail.tangki_bbm }}</dd>
                         <dt class="text-muted-foreground">Lokasi tujuan</dt>
                         <dd>{{ detail.lokasi_tujuan }}</dd>
                         <dt class="text-muted-foreground">Customer</dt>
@@ -225,22 +278,9 @@ const opsiFilter: ('semua' | PeminjamanStatus)[] = [
                         <dd><StatusBadge :status="detail.status" /></dd>
                     </dl>
 
-                    <DialogFooter class="gap-2 sm:gap-0">
-                        <Button variant="outline" @click="detail = null"
-                            >Tutup</Button
-                        >
-                        <Button
-                            v-if="detail.status === 'pending'"
-                            @click="setujui(detail)"
-                        >
-                            Setujui
-                        </Button>
-                        <Button
-                            v-if="detail.status === 'pending'"
-                            variant="destructive"
-                            @click="tolak(detail)"
-                        >
-                            Tolak
+                    <DialogFooter>
+                        <Button variant="outline" @click="detail = null">
+                            Tutup
                         </Button>
                     </DialogFooter>
                 </template>

@@ -202,7 +202,7 @@ function tolak(item: MockPeminjaman): void {
                                     {{ formatDateTime(item.tanggal_selesai) }}
                                 </TableCell>
                                 <TableCell class="max-w-48 truncate">{{
-                                    item.kegiatan
+                                    item.keperluan
                                 }}</TableCell>
                                 <TableCell>
                                     <StatusBadge :status="item.status" />
@@ -270,7 +270,7 @@ function tolak(item: MockPeminjaman): void {
                                     {{ formatDateTime(item.tanggal_selesai) }}
                                 </p>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ item.kegiatan }} ·
+                                    {{ item.keperluan }} ·
                                     {{ item.lokasi_tujuan }}
                                 </p>
                             </div>

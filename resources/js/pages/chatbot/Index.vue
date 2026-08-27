@@ -38,43 +38,13 @@ const input = ref('');
 const sedangMengetik = ref(false);
 const kotakPesan = ref<HTMLElement | null>(null);
 
-const balasanBot = [
-    'Untuk mengajukan peminjaman mobil, buka menu "Ajukan Peminjaman" di sidebar lalu lengkapi formulirnya. Pengajuan akan diproses oleh admin.',
-    'Status pengajuan dapat Anda pantau di menu "Daftar Pengajuan". Status meliputi menunggu, disetujui, ditolak, dan selesai.',
-    'Jadwal seluruh mobil bisa dilihat di menu "Jadwal Mobil" berbentuk kalender bulanan. Klik tanggal untuk melihat detailnya.',
-    'Mobil dengan status "Tersedia" di halaman "Data Mobil" siap dipinjam. Mobil yang "Di Servis" tidak dapat diajukan sementara.',
-    'Jika ada kendala, silakan hubungi admin melalui menu notifikasi atau datang langsung ke kantor bagian umum.',
-];
-
-function jawabanBot(tanyaan: string): string {
-    const teks = tanyaan.toLowerCase();
-
-    if (teks.includes('pinjam') || teks.includes('ajukan')) {
-        return balasanBot[0];
-    }
-
-    if (teks.includes('status') || teks.includes('pengajuan')) {
-        return balasanBot[1];
-    }
-
-    if (teks.includes('jadwal') || teks.includes('kalender')) {
-        return balasanBot[2];
-    }
-
-    if (teks.includes('mobil') || teks.includes('servis')) {
-        return balasanBot[3];
-    }
-
-    return balasanBot[Math.floor(Math.random() * balasanBot.length)];
-}
-
 async function gulirKeBawah(): Promise<void> {
     await nextTick();
 
     kotakPesan.value?.scrollTo({ top: kotakPesan.value.scrollHeight });
 }
 
-function kirim(): void {
+async function kirim(): Promise<void> {
     const teks = input.value.trim();
 
     if (teks === '') {
@@ -87,15 +57,39 @@ function kirim(): void {
 
     sedangMengetik.value = true;
 
-    setTimeout(() => {
+    try {
+        const response = await fetch('/api/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': decodeURIComponent(
+                    document.cookie
+                        .split('; ')
+                        .find((c) => c.startsWith('XSRF-TOKEN='))
+                        ?.split('=')[1] ?? '',
+                ),
+            },
+            body: JSON.stringify({ pesan: teks }),
+        });
+
+        const data = await response.json();
+
         pesan.value.push({
             id: idBerikutnya++,
             peran: 'bot',
-            teks: jawabanBot(teks),
+            teks: data.jawaban ?? 'Maaf, terjadi kesalahan. Silakan coba lagi.',
         });
+    } catch {
+        pesan.value.push({
+            id: idBerikutnya++,
+            peran: 'bot',
+            teks: 'Maaf, terjadi kesalahan koneksi. Pastikan Anda terhubung ke internet dan coba lagi.',
+        });
+    } finally {
         sedangMengetik.value = false;
         void gulirKeBawah();
-    }, 800);
+    }
 }
 </script>
 
@@ -120,15 +114,13 @@ function kirim(): void {
                 <div>
                     <p class="text-sm font-semibold">Asisten CETM</p>
                     <p class="text-xs text-muted-foreground">
-                        Biasanya membalas seketika
+                        Didukung oleh AI — biasanya membalas seketika
                     </p>
                 </div>
             </CardHeader>
 
-            <CardContent
-                ref="kotakPesan"
-                class="flex-1 space-y-3 overflow-y-auto py-4"
-            >
+            <CardContent class="flex-1 overflow-y-auto py-4">
+                <div ref="kotakPesan" class="flex h-full flex-col space-y-3">
                 <div
                     v-for="item in pesan"
                     :key="item.id"
@@ -168,6 +160,7 @@ function kirim(): void {
                         </span>
                     </div>
                 </div>
+                </div>
             </CardContent>
 
             <CardFooter class="border-t pt-4">
@@ -179,12 +172,13 @@ function kirim(): void {
                         v-model="input"
                         placeholder="Tulis pertanyaan Anda..."
                         aria-label="Pesan"
+                        :disabled="sedangMengetik"
                     />
                     <Button
                         type="submit"
                         size="icon"
                         aria-label="Kirim pesan"
-                        :disabled="input.trim() === ''"
+                        :disabled="input.trim() === '' || sedangMengetik"
                     >
                         <SendHorizonal class="size-4" />
                     </Button>

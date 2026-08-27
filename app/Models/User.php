@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +26,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $no_hp
+ * @property string|null $foto
  * @property int|null $divisi_id
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
@@ -36,7 +38,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Divisi|null $divisi
  * @property int|null $jumlah_peminjaman
  */
-#[Fillable(['nama', 'email', 'password', 'no_hp', 'divisi_id'])]
+#[Fillable(['nama', 'email', 'password', 'no_hp', 'foto', 'divisi_id'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -93,5 +95,15 @@ class User extends Authenticatable implements PasskeyUser
     public function isAdmin(): bool
     {
         return $this->role?->role === UserRole::Admin;
+    }
+
+    /**
+     * Get the user's profile photo URL.
+     */
+    protected function fotoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value ? '/storage/'.$value : null,
+        );
     }
 }

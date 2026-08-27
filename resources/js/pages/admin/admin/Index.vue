@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2, ShieldCheck } from '@lucide/vue';
-import { reactive, ref } from 'vue';
-import { toast } from 'vue-sonner';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { KeyRound, Pencil, Plus, ShieldCheck, Trash2 } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -24,8 +24,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { mockAdminTambahan } from '@/mock/pengguna';
-import type { MockPengguna } from '@/mock/pengguna';
+import type { User } from '@/types/auth';
+import {
+    store,
+    update,
+    destroy,
+    resetPassword,
+} from '@/routes/manajemen/admin';
 
 defineOptions({
     layout: {
@@ -33,67 +38,88 @@ defineOptions({
     },
 });
 
-const admin = ref<MockPengguna[]>(
-    [mockAdminTambahan[0]].filter(Boolean).map((p) => ({ ...p })),
-);
+const props = defineProps<{
+    admins: User[];
+}>();
+
+const page = usePage();
+const flash = computed(() => page.props.flash as { success?: string; error?: string } | undefined);
 
 const dialogTerbuka = ref(false);
-const sedangEdit = ref<MockPengguna | null>(null);
+const sedangEdit = ref<User | null>(null);
+const dialogResetPassword = ref(false);
+const sedangResetPassword = ref<User | null>(null);
 
-const form = reactive({
+const form = useForm({
     nama: '',
     email: '',
+    password: '',
     no_hp: '',
+});
+
+const formResetPassword = useForm({
+    password: '',
+    password_confirmation: '',
 });
 
 function bukaTambah(): void {
     sedangEdit.value = null;
     form.nama = '';
     form.email = '';
+    form.password = '';
     form.no_hp = '';
+    form.clearErrors();
     dialogTerbuka.value = true;
 }
 
-function bukaEdit(item: MockPengguna): void {
+function bukaEdit(item: User): void {
     sedangEdit.value = item;
     form.nama = item.nama;
     form.email = item.email;
+    form.password = '';
     form.no_hp = item.no_hp ?? '';
+    form.clearErrors();
     dialogTerbuka.value = true;
 }
 
 function simpan(): void {
     if (sedangEdit.value) {
-        const target = admin.value.find((p) => p.id === sedangEdit.value?.id);
-
-        if (target) {
-            Object.assign(target, {
-                nama: form.nama,
-                email: form.email,
-                no_hp: form.no_hp || null,
-            });
-        }
-
-        toast.success('Data admin berhasil diperbarui.');
-    } else {
-        admin.value.push({
-            id: Math.max(0, ...admin.value.map((p) => p.id)) + 1,
-            nama: form.nama,
-            email: form.email,
-            no_hp: form.no_hp || null,
-            divisi: null,
-            role: 'admin',
-            email_verified_at: null,
+        form.put(update.url(sedangEdit.value.id), {
+            onSuccess: () => {
+                dialogTerbuka.value = false;
+            },
         });
-        toast.success('Admin baru berhasil ditambahkan.');
+    } else {
+        form.post(store.url(), {
+            onSuccess: () => {
+                dialogTerbuka.value = false;
+            },
+        });
     }
-
-    dialogTerbuka.value = false;
 }
 
-function hapus(item: MockPengguna): void {
-    admin.value = admin.value.filter((p) => p.id !== item.id);
-    toast.info(`Admin ${item.nama} dihapus.`);
+function hapus(item: User): void {
+    if (confirm(`Hapus admin "${item.nama}"?`)) {
+        router.delete(destroy.url(item.id));
+    }
+}
+
+function bukaResetPassword(item: User): void {
+    sedangResetPassword.value = item;
+    formResetPassword.password = '';
+    formResetPassword.password_confirmation = '';
+    formResetPassword.clearErrors();
+    dialogResetPassword.value = true;
+}
+
+function simpanResetPassword(): void {
+    if (!sedangResetPassword.value) return;
+
+    formResetPassword.put(resetPassword.url(sedangResetPassword.value.id), {
+        onSuccess: () => {
+            dialogResetPassword.value = false;
+        },
+    });
 }
 </script>
 
@@ -103,6 +129,13 @@ function hapus(item: MockPengguna): void {
     <div
         class="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4"
     >
+        <div
+            v-if="flash?.success"
+            class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700"
+        >
+            {{ flash.success }}
+        </div>
+
         <div class="flex flex-wrap items-center justify-between gap-3">
             <Heading
                 title="Manajemen Admin"
@@ -119,7 +152,7 @@ function hapus(item: MockPengguna): void {
                 <CardTitle>Daftar Admin</CardTitle>
             </CardHeader>
             <CardContent>
-                <Table v-if="admin.length > 0">
+                <Table v-if="admins.length > 0">
                     <TableHeader>
                         <TableRow>
                             <TableHead>Nama</TableHead>
@@ -130,7 +163,7 @@ function hapus(item: MockPengguna): void {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="item in admin" :key="item.id">
+                        <TableRow v-for="item in admins" :key="item.id">
                             <TableCell class="font-medium">{{
                                 item.nama
                             }}</TableCell>
@@ -145,6 +178,14 @@ function hapus(item: MockPengguna): void {
                                 </span>
                             </TableCell>
                             <TableCell class="space-x-1 text-right">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    title="Reset Password"
+                                    @click="bukaResetPassword(item)"
+                                >
+                                    <KeyRound class="size-4" />
+                                </Button>
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -168,7 +209,7 @@ function hapus(item: MockPengguna): void {
                     v-else
                     class="py-10 text-center text-sm text-muted-foreground"
                 >
-                    Belum ada admin tambahan.
+                    Belum ada admin.
                 </p>
             </CardContent>
         </Card>
@@ -180,9 +221,9 @@ function hapus(item: MockPengguna): void {
         >
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle
-                        >{{ sedangEdit ? 'Ubah' : 'Tambah' }} Admin</DialogTitle
-                    >
+                    <DialogTitle>
+                        {{ sedangEdit ? 'Ubah' : 'Tambah' }} Admin
+                    </DialogTitle>
                     <DialogDescription>
                         Admin memiliki akses penuh untuk mengelola armada dan
                         pengajuan.
@@ -196,7 +237,12 @@ function hapus(item: MockPengguna): void {
                 >
                     <div class="grid gap-2">
                         <Label for="a-nama">Nama lengkap</Label>
-                        <Input id="a-nama" v-model="form.nama" required />
+                        <Input
+                            id="a-nama"
+                            v-model="form.nama"
+                            required
+                        />
+                        <InputError :message="form.errors.nama" />
                     </div>
 
                     <div class="grid gap-2">
@@ -207,19 +253,106 @@ function hapus(item: MockPengguna): void {
                             type="email"
                             required
                         />
+                        <InputError :message="form.errors.email" />
+                    </div>
+
+                    <div v-if="!sedangEdit" class="grid gap-2">
+                        <Label for="a-password">Password</Label>
+                        <Input
+                            id="a-password"
+                            v-model="form.password"
+                            type="password"
+                            required
+                        />
+                        <InputError :message="form.errors.password" />
                     </div>
 
                     <div class="grid gap-2">
                         <Label for="a-nohp">Nomor HP</Label>
-                        <Input id="a-nohp" v-model="form.no_hp" type="tel" />
+                        <Input
+                            id="a-nohp"
+                            v-model="form.no_hp"
+                            type="tel"
+                        />
+                        <InputError :message="form.errors.no_hp" />
                     </div>
                 </form>
 
                 <DialogFooter>
-                    <Button variant="outline" @click="dialogTerbuka = false"
-                        >Batal</Button
+                    <Button
+                        variant="outline"
+                        :disabled="form.processing"
+                        @click="dialogTerbuka = false"
                     >
-                    <Button type="submit" form="form-admin">Simpan</Button>
+                        Batal
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="form-admin"
+                        :disabled="form.processing"
+                    >
+                        {{ form.processing ? 'Menyimpan...' : 'Simpan' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Dialog reset password -->
+        <Dialog
+            :open="dialogResetPassword"
+            @update:open="(open) => (dialogResetPassword = open)"
+        >
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Reset Password</DialogTitle>
+                    <DialogDescription>
+                        Atur ulang password untuk
+                        {{ sedangResetPassword?.nama }}.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <form
+                    id="form-reset-password"
+                    class="grid gap-4"
+                    @submit.prevent="simpanResetPassword"
+                >
+                    <div class="grid gap-2">
+                        <Label for="arp-password">Password baru</Label>
+                        <Input
+                            id="arp-password"
+                            v-model="formResetPassword.password"
+                            type="password"
+                            required
+                        />
+                        <InputError :message="formResetPassword.errors.password" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="arp-password-confirm">Konfirmasi password</Label>
+                        <Input
+                            id="arp-password-confirm"
+                            v-model="formResetPassword.password_confirmation"
+                            type="password"
+                            required
+                        />
+                    </div>
+                </form>
+
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        :disabled="formResetPassword.processing"
+                        @click="dialogResetPassword = false"
+                    >
+                        Batal
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="form-reset-password"
+                        :disabled="formResetPassword.processing"
+                    >
+                        {{ formResetPassword.processing ? 'Menyimpan...' : 'Simpan' }}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

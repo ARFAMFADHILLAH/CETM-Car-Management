@@ -45,7 +45,7 @@ interface LaporanPeminjaman {
     car: { nama: string } | null;
     tanggal_mulai: string;
     tanggal_selesai: string;
-    kegiatan: string;
+    keperluan: string;
     lokasi_tujuan: string;
     nama_customer: string | null;
     status: { value: string };
@@ -310,7 +310,7 @@ function getExportUrl(type: Tab, format: 'pdf' | 'excel'): string {
                                     <br />
                                     s/d {{ formatDateTime(item.tanggal_selesai) }}
                                 </TableCell>
-                                <TableCell>{{ item.kegiatan }}</TableCell>
+                                <TableCell>{{ item.keperluan }}</TableCell>
                                 <TableCell>{{ item.lokasi_tujuan }}</TableCell>
                                 <TableCell>
                                     <StatusBadge :status="item.status.value" />

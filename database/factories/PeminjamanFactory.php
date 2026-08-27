@@ -30,7 +30,7 @@ class PeminjamanFactory extends Factory
             'car_id' => Car::factory(),
             'tanggal_mulai' => $tanggalMulai,
             'tanggal_selesai' => fake()->dateTimeBetween($tanggalMulai, $tanggalMulai->format('Y-m-d H:i:s').' +7 days'),
-            'kegiatan' => fake()->randomElement([
+            'keperluan' => fake()->randomElement([
                 'Survey lokasi proyek',
                 'Kunjungan customer',
                 'Rapat dengan klien',
@@ -39,6 +39,10 @@ class PeminjamanFactory extends Factory
                 'Monitoring cabang',
             ]),
             'lokasi_tujuan' => fake()->city(),
+            'tujuan' => fake()->randomElement(['dalam_kota', 'luar_kota']),
+            'km_awal' => fake()->numberBetween(1000, 99999),
+            'km_akhir' => fake()->optional(0.6)->numberBetween(1000, 99999),
+            'tangki_bbm' => fake()->randomElement(['full', '3/4', '1/2', '1/4', 'empty']),
             'nama_customer' => fake()->optional(0.8)->company(),
             'catatan' => fake()->optional(0.7)->sentence(),
             'status' => PeminjamanStatus::Pending->value,

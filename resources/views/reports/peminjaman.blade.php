@@ -43,7 +43,7 @@
                 <th>Mobil</th>
                 <th>Tgl Mulai</th>
                 <th>Tgl Selesai</th>
-                <th>Kegiatan</th>
+                <th>Keperluan</th>
                 <th>Lokasi</th>
                 <th>Status</th>
             </tr>
@@ -58,7 +58,7 @@
                 <td>{{ $item->car?->nama ?? '-' }}</td>
                 <td>{{ $item->tanggal_mulai->format('d/m/Y H:i') }}</td>
                 <td>{{ $item->tanggal_selesai->format('d/m/Y H:i') }}</td>
-                <td>{{ $item->kegiatan }}</td>
+                <td>{{ $item->keperluan }}</td>
                 <td>{{ $item->lokasi_tujuan }}</td>
                 <td>
                     @if($item->status->value === 'pending') Menunggu

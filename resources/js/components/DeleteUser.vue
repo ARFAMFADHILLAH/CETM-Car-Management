@@ -25,22 +25,22 @@ const passwordInput = useTemplateRef('passwordInput');
     <div class="space-y-6">
         <Heading
             variant="small"
-            title="Delete account"
-            description="Delete your account and all of its resources"
+            title="Hapus Akun"
+            description="Hapus akun dan semua resource Anda"
         />
         <div
             class="space-y-4 rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-800/20 dark:bg-blue-950/20"
         >
-            <div class="relative space-y-0.5 text-blue-700 dark:text-blue-200">
-                <p class="font-medium">Warning</p>
+            <div class="relative space-y-0.5 text-white-700 dark:text-white-200">
+                <p class="font-medium">Peringatan</p>
                 <p class="text-sm">
-                    Please proceed with caution, this cannot be undone.
+                    Harap berhati-hati, tindakan ini tidak dapat dibatalkan.
                 </p>
             </div>
             <Dialog>
                 <DialogTrigger as-child>
                     <Button variant="destructive" data-test="delete-user-button"
-                        >Delete account</Button
+                        >Hapus Akun</Button
                     >
                 </DialogTrigger>
                 <DialogContent>
@@ -56,27 +56,26 @@ const passwordInput = useTemplateRef('passwordInput');
                     >
                         <DialogHeader class="space-y-3">
                             <DialogTitle
-                                >Are you sure you want to delete your
-                                account?</DialogTitle
+                                >Apakah Anda yakin ingin menghapus akun
+                                Anda?</DialogTitle
                             >
                             <DialogDescription>
-                                Once your account is deleted, all of its
-                                resources and data will also be permanently
-                                deleted. Please enter your password to confirm
-                                you would like to permanently delete your
-                                account.
+                                Setelah akun Anda dihapus, semua resource dan
+                                data juga akan dihapus secara permanen. Masukkan
+                                kata sandi Anda untuk mengonfirmasi bahwa Anda
+                                ingin menghapus akun secara permanen.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div class="grid gap-2">
                             <Label for="password" class="sr-only"
-                                >Password</Label
+                                >Kata Sandi</Label
                             >
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 ref="passwordInput"
-                                placeholder="Password"
+                                placeholder="Kata Sandi"
                             />
                             <InputError :message="errors.password" />
                         </div>
@@ -92,7 +91,7 @@ const passwordInput = useTemplateRef('passwordInput');
                                         }
                                     "
                                 >
-                                    Cancel
+                                    Batal
                                 </Button>
                             </DialogClose>
 
@@ -102,7 +101,7 @@ const passwordInput = useTemplateRef('passwordInput');
                                 :disabled="processing"
                                 data-test="confirm-delete-user-button"
                             >
-                                Delete account
+                                Hapus Akun
                             </Button>
                         </DialogFooter>
                     </Form>

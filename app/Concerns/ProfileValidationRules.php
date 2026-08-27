@@ -19,6 +19,7 @@ trait ProfileValidationRules
             'nama' => $this->nameRules(),
             'email' => $this->emailRules($userId),
             'no_hp' => $this->noHpRules(),
+            'foto' => $this->fotoRules(),
         ];
     }
 
@@ -43,7 +44,7 @@ trait ProfileValidationRules
     }
 
     /**
-     * Get the validation rules used to validate user emails.
+     * Get the rules used to validate user emails.
      *
      * @return array<int, ValidationRule|array<mixed>|string>
      */
@@ -58,5 +59,15 @@ trait ProfileValidationRules
                 ? Rule::unique(User::class)
                 : Rule::unique(User::class)->ignore($userId),
         ];
+    }
+
+    /**
+     * Get the rules used to validate user profile photos.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function fotoRules(): array
+    {
+        return ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'];
     }
 }

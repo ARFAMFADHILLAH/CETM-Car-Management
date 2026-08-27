@@ -135,7 +135,7 @@ const jadwalHariIni = computed(() => aktifPadaTanggal(tanggalDipilih.value));
                             · {{ item.divisi }}
                         </p>
                         <p class="text-xs text-muted-foreground">
-                            {{ item.kegiatan }} → {{ item.lokasi_tujuan }}
+                            {{ item.keperluan }} → {{ item.lokasi_tujuan }}
                         </p>
                         <Badge
                             v-if="item.nama_customer"

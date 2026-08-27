@@ -19,13 +19,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $car_id
  * @property CarbonInterface $tanggal_mulai
  * @property CarbonInterface $tanggal_selesai
- * @property string $kegiatan
+ * @property string $keperluan
  * @property string $lokasi_tujuan
+ * @property string $tujuan
+ * @property int $km_awal
+ * @property int|null $km_akhir
+ * @property string $tangki_bbm
  * @property string|null $nama_customer
  * @property string|null $catatan
  * @property PeminjamanStatus $status
  * @property CarbonInterface|null $created_at
  * @property CarbonInterface|null $updated_at
+ * @property User|null $user
  */
 #[Fillable([
     'nama_peminjam',
@@ -35,8 +40,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'car_id',
     'tanggal_mulai',
     'tanggal_selesai',
-    'kegiatan',
+    'keperluan',
     'lokasi_tujuan',
+    'tujuan',
+    'km_awal',
+    'km_akhir',
+    'tangki_bbm',
     'nama_customer',
     'catatan',
     'status',
@@ -84,5 +93,15 @@ class Peminjaman extends Model
     public function divisi(): BelongsTo
     {
         return $this->belongsTo(Divisi::class);
+    }
+
+    /**
+     * The user who borrowed (matched by email).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'email_peminjam', 'email');
     }
 }
